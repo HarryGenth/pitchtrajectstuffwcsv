@@ -3,14 +3,17 @@ from tkinter import messagebox, ttk
 import csv
 import os
 
-
 def calculate_coordinates(release_height, release_side, extension, velocity_mph, tarp_distance, horizontal_break,
-                          induced_vertical_break):
+                          induced_vertical_break, flat_ground):
     # Constants
     mound_to_plate_distance = 60.5
     strikezone_height = 2.5
     plate_center_horizontal = 0.0
     g = 32.174  # Acceleration due to gravity in feet/s^2
+
+    # Adjust release height if throwing from flat ground
+    if flat_ground:
+        release_height -= 10 / 12  # Convert 10 inches to feet
 
     # Convert velocity from mph to fps
     velocity = velocity_mph * 1.467
@@ -128,9 +131,10 @@ def calculate_and_display(event=None):
         tarp_distance = slider_tarp_distance.get()
         horizontal_break = float(entry_horizontal_break.get()) * 1 / -12  # convert to inches
         induced_vertical_break = float(entry_induced_vertical_break.get()) * 1 / -12  # convert to inches
+        flat_ground = flat_ground_var.get()
 
         coordinates = calculate_coordinates(release_height, release_side, extension, velocity_mph, tarp_distance,
-                                            horizontal_break, induced_vertical_break)
+                                            horizontal_break, induced_vertical_break, flat_ground)
 
         plot_coordinates(coordinates)
         coordinates_label.config(text=f"Coordinates on the tarp: ({coordinates[0]:.2f}, {coordinates[1]:.2f})")
@@ -200,7 +204,6 @@ def on_resize(event):
     canvas.config(width=canvas_size, height=canvas_size)
     plot_coordinates(None)  # Redraw the grid without the target
 
-
 # Create the main window
 root = tk.Tk()
 root.title("Pitch Trajectory Calculator")
@@ -211,10 +214,6 @@ screen_height = root.winfo_screenheight()
 
 # Set the window to take up the left half of the screen
 root.geometry(f"{screen_width // 2}x{screen_height}+0+0")
-
-# Create and place the input fields and labels
-inputs_frame = tk.Frame(root)
-inputs_frame.grid(row=0, column=0, padx=10, pady=10)
 
 # Create and place the input fields and labels
 inputs_frame = tk.Frame(root)
@@ -253,34 +252,39 @@ entry_induced_vertical_break = tk.Entry(inputs_frame)
 entry_induced_vertical_break.grid(row=7, column=1, pady=5)
 
 tk.Label(inputs_frame, text="Tarp Distance (feet):").grid(row=8, column=0, pady=5)
-slider_tarp_distance = tk.Scale(inputs_frame, from_=11, to=60.5, orient=tk.HORIZONTAL, resolution=0.5, command=lambda x: calculate_and_display())
+slider_tarp_distance = tk.Scale(inputs_frame, from_=10, to=60.5, orient=tk.HORIZONTAL, resolution=0.5, command=lambda x: calculate_and_display())
 slider_tarp_distance.grid(row=8, column=1, pady=5)
 
+# Checkbox for flat ground option
+flat_ground_var = tk.BooleanVar()
+flat_ground_check = tk.Checkbutton(inputs_frame, text="Flat Ground", variable=flat_ground_var)
+flat_ground_check.grid(row=9, columnspan=2, pady=5)
+
 # Dropdown menu for selecting profiles
-tk.Label(inputs_frame, text="Select Profile:").grid(row=9, column=0, pady=5)
+tk.Label(inputs_frame, text="Select Profile:").grid(row=10, column=0, pady=5)
 profile_dropdown = ttk.Combobox(inputs_frame, state="readonly")
-profile_dropdown.grid(row=9, column=1, pady=5)
+profile_dropdown.grid(row=10, column=1, pady=5)
 load_profiles()
 
 # Create and place the calculate button
 calculate_button = tk.Button(inputs_frame, text="Calculate", command=calculate_and_display)
-calculate_button.grid(row=10, columnspan=2, pady=10)
+calculate_button.grid(row=11, columnspan=2, pady=10)
 
 # Create and place the save profile button
 save_button = tk.Button(inputs_frame, text="Save Profile", command=save_to_csv)
-save_button.grid(row=11, columnspan=2, pady=10)
+save_button.grid(row=12, columnspan=2, pady=10)
 
 # Label to display the coordinates
 coordinates_label = tk.Label(inputs_frame, text="")
-coordinates_label.grid(row=12, columnspan=2)
+coordinates_label.grid(row=13, columnspan=2)
 
 # Label to display input errors
 error_label = tk.Label(inputs_frame, text="", fg="red")
-error_label.grid(row=13, columnspan=2)
+error_label.grid(row=14, columnspan=2)
 
 # Create a frame for the canvas
 canvas_frame = tk.Frame(root)
-canvas_frame.grid(row=0, column=1, rowspan=14, sticky="nsew", padx=10, pady=10)
+canvas_frame.grid(row=0, column=1, rowspan=15, sticky="nsew", padx=10, pady=10)
 
 # Make the canvas frame resize with the window
 root.grid_rowconfigure(0, weight=1)
@@ -308,3 +312,5 @@ plot_coordinates(None)
 # Run the main event loop
 root.mainloop()
 
+
+#
